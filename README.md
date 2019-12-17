@@ -1,3 +1,3 @@
 # dot
-dot
-test1
+dot = .
+
