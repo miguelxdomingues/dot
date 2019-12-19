@@ -172,12 +172,10 @@ Módulos do Produto
 1. Abrir a solução do módulo:  
 
     - de framework  
-    `$/Elevation3/FW/4.00/Development-Core/Framework/Development/Server/Modules`
-    `$/Elevation3/FW/4.00/Development-Core/Framework/Development/Server/Modules/CorePatterns/Primavera.Core.Patterns.sln`
+    `$/Elevation3/FW/4.00/Development-Core/Framework/Development/Server/Modules/CorePatterns/Primavera.Core.Patterns.sln`  
 
     - ou produto  
-    `$/Elevation3/FW/Prototyping/Development-Core/Modules`
-    `$/Elevation3/FW/Prototyping/Development-Core/Modules/Billing/Primavera.Billing.sln`
+    `$/Elevation3/FW/Prototyping/Development-Core/Modules/Billing/Primavera.Billing.sln`  
 
 2. Alterar o que for necessário no código do módulo (modelar ou código custom)
 
