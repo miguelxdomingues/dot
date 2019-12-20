@@ -181,7 +181,7 @@ Módulos do Produto
 
 3. Compilar o módulo (transform and rebuild)
 
-4. Substituir os packages usados pela solução do produto
+4. Ainda a partir da solução do módulo, substituir os packages usados pela solução do produto
 
    - Ir ao menu `ELEVATION \ NuGet \ Replace Assemblies in Local Repository`
 
@@ -189,7 +189,7 @@ Módulos do Produto
 
    - Selecionar a pasta destino `C:\PRJNET\Elevation3\FW\Prototyping\Development-Core\_packages`
 
-5. Correr a solução do produto e temos o produto a usar o nosso módulo compilado localmente
+5. A partir da solução do produto fazer debug ao módulo que foi compilado localmente
 
    - IMPORTANTE! Não fazer restore dos packages, caso contrário iremos buscar novamente o package e deixamos de usar o que tem as nossas alterações
 
