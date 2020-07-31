@@ -1,7 +1,7 @@
 # Resumo
 
 Este projeto apresenta uma solução para construir um serializador de JSON baseado no System.Text.Json
-que nos permite fazer debug ao processo de serialização e controlar todo o processo de escrita, e epresenta soluções para os issues referidos abaixo.
+que nos permite fazer debug ao processo de serialização e controlar todo o processo de escrita, e ainda apresenta soluções para os issues referidos abaixo.
 
 # Referências
         
