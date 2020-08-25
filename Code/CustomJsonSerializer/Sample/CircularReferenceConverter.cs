@@ -46,7 +46,7 @@ namespace JsonSerializerApp.Serialization
         }
 
         /// <inheritdoc/>
-        protected override void SerializeCustom<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property)
+        protected override void SerializeCustom<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property)
         {
             // To handle the serialization of a specified type
 
@@ -63,7 +63,7 @@ namespace JsonSerializerApp.Serialization
             {
                 // For the other types follow the default behavior
 
-                base.SerializeCustom(writer, value, options, hashCodes, property);
+                base.SerializeCustom(writer, value, property);
             }
         }
 

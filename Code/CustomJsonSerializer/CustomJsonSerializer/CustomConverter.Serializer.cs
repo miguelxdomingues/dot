@@ -103,23 +103,9 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        protected virtual void Serialize<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options)
-        {
-            this.Serialize(writer, value, options, new List<int>());
-        }
-
-        /// <summary>
-        /// Serializes the specified value.
-        /// </summary>
-        /// <typeparam name="TValue">The type of value.</typeparam>
-        /// <param name="writer">The serializer writer.</param>
-        /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void Serialize<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual void Serialize<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
             // Get the value kind
 
@@ -131,11 +117,11 @@ namespace JsonSerializerApp.Serialization
             if (jsonValueType == CustomJsonValueKind.Object
                 || jsonValueType == CustomJsonValueKind.Array)
             {
-                int maxDepth = options.MaxDepth > 0 ? options.MaxDepth : 64;
+                int maxDepth = this.Options.MaxDepth > 0 ? this.Options.MaxDepth : 64;
 
                 if (writer.CurrentDepth > maxDepth)
                 {
-                    if (this.SerializeMaxDepth(writer, value, options, hashCodes, property))
+                    if (this.SerializeMaxDepth(writer, value, property))
                     {
                         return;
                     }
@@ -149,16 +135,16 @@ namespace JsonSerializerApp.Serialization
             {
                 var hashCode = value.GetHashCode();
 
-                if (hashCodes.Contains(hashCode))
+                if (this.HashCodes.Contains(hashCode))
                 {
-                    if (this.SerializeCircularRef(writer, value, options, hashCodes, property))
+                    if (this.SerializeCircularRef(writer, value, property))
                     {
                         return;
                     }
                 }
                 else
                 {
-                    hashCodes.Add(hashCode);
+                    this.HashCodes.Add(hashCode);
                 }
             }
 
@@ -166,7 +152,7 @@ namespace JsonSerializerApp.Serialization
 
             if (value != null && value.GetType().IsEnum)
             {
-                this.SerializeEnumeration(writer, value, options, property);
+                this.SerializeEnumeration(writer, value, property);
                 return;
             }
 
@@ -175,39 +161,39 @@ namespace JsonSerializerApp.Serialization
             switch (jsonValueType)
             {
                 case CustomJsonValueKind.Null:
-                    this.SerializeNull(writer, value, options, property);
+                    this.SerializeNull(writer, value, property);
                     break;
 
                 case CustomJsonValueKind.True:
-                    this.SerializeBool(writer, true, options, property);
+                    this.SerializeBool(writer, true, property);
                     break;
 
                 case CustomJsonValueKind.False:
-                    this.SerializeBool(writer, false, options, property);
+                    this.SerializeBool(writer, false, property);
                     break;
 
                 case CustomJsonValueKind.String:
-                    this.SerializeString(writer, value, options, property);
+                    this.SerializeString(writer, value, property);
                     break;
 
                 case CustomJsonValueKind.Number:
-                    this.SerializeNumber(writer, value, options, property);
+                    this.SerializeNumber(writer, value, property);
                     break;
 
                 case CustomJsonValueKind.Array:
-                    this.SerializeArray(writer, value, options, hashCodes, property);
+                    this.SerializeArray(writer, value, property);
                     break;
 
                 case CustomJsonValueKind.Object:
-                    this.SerializeObject(writer, value, options, hashCodes, property);
+                    this.SerializeObject(writer, value, property);
                     break;
 
                 case CustomJsonValueKind.Undefined:
-                    this.SerializeUndefined(writer, value, options, hashCodes, property);
+                    this.SerializeUndefined(writer, value, property);
                     break;
 
                 case CustomJsonValueKind.Custom:
-                    this.SerializeCustom(writer, value, options, hashCodes, property);
+                    this.SerializeCustom(writer, value, property);
                     break;
 
                 default:
@@ -221,14 +207,12 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         /// <returns><c>True</c> if the serialization was handled; otherwise <c>false</c> to continue with default serialization.</returns>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual bool SerializeCircularRef<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual bool SerializeCircularRef<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            switch (options.CircularRefHandling)
+            switch (this.Options.CircularRefHandling)
             {
                 case CircularRefHandlingOption.Suppress:
                     return true;
@@ -241,7 +225,7 @@ namespace JsonSerializerApp.Serialization
                     if (property != null)
                     {
                         property.Name = $"{property.Name}$HashCodeRef";
-                        this.SerializePropertyName(writer, value, options, property);
+                        this.SerializePropertyName(writer, value, property);
                         writer.WriteStringValue($"{value.GetHashCode()}");
                     }
 
@@ -258,12 +242,10 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         /// <returns><c>True</c> if the serialization was handled; otherwise <c>false</c> to continue with default serialization.</returns>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual bool SerializeMaxDepth<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual bool SerializeMaxDepth<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
             switch (this.Options.MaxDepthHandling)
             {
@@ -278,7 +260,7 @@ namespace JsonSerializerApp.Serialization
                     if (property != null)
                     {
                         property.Name = $"{property.Name}$MaxDepth";
-                        this.SerializePropertyName(writer, value, options, property);
+                        this.SerializePropertyName(writer, value, property);
                         writer.WriteStringValue($"{writer.CurrentDepth}");
                     }
 
@@ -295,14 +277,13 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeTypeName<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializeTypeName<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
             if (value != null)
             {
-                switch (options.TypeNameHandling)
+                switch (this.Options.TypeNameHandling)
                 {
                     case TypeNameHandlingOption.Suppress:
                         break;
@@ -329,10 +310,9 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializePropertyName<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializePropertyName<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
             if (property != null && !property.Name.IsNullOrEmpty())
             {
@@ -346,12 +326,11 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeHashCode<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options)
+        protected virtual void SerializeHashCode<TValue>(Utf8JsonWriter writer, TValue value)
         {
-            if (value != null && options.CircularRefHandling == CircularRefHandlingOption.HashCode)
+            if (value != null && this.Options.CircularRefHandling == CircularRefHandlingOption.HashCode)
             {
                 writer.WritePropertyName($"$HashCode");
                 writer.WriteStringValue($"{value.GetHashCode()}");
@@ -363,14 +342,13 @@ namespace JsonSerializerApp.Serialization
         /// </summary>
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeNull<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializeNull<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
             if (property != null && !property.IsContainer)
             {
-                this.SerializePropertyName(writer, value, options, property);
+                this.SerializePropertyName(writer, value, property);
                 writer.WriteNullValue();
             }
         }
@@ -380,12 +358,11 @@ namespace JsonSerializerApp.Serialization
         /// </summary>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeBool(Utf8JsonWriter writer, bool value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializeBool(Utf8JsonWriter writer, bool value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
             writer.WriteBooleanValue(value);
         }
 
@@ -395,12 +372,11 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeEnumeration<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializeEnumeration<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
             writer.WriteStringValue(Enum.GetName(value.GetType(), value));
         }
 
@@ -410,12 +386,11 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeNumber<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializeNumber<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
             var num = Convert.ToDecimal(value, CultureInfo.CurrentCulture);
             writer.WriteNumberValue(num);
         }
@@ -426,12 +401,11 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeString<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, CustomPropertyInfo property = null)
+        protected virtual void SerializeString<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
             var result = JsonSerializer.Serialize(value).Replace("\u0022", string.Empty, StringComparison.OrdinalIgnoreCase);
             writer.WriteStringValue(result);
         }
@@ -442,17 +416,15 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeEnumerable<TValue>(Utf8JsonWriter writer, IEnumerable<TValue> value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual void SerializeEnumerable<TValue>(Utf8JsonWriter writer, IEnumerable<TValue> value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
 
             foreach (var item in value)
             {
-                this.Serialize(writer, item, options, hashCodes);
+                this.Serialize(writer, item);
             }
         }
 
@@ -462,13 +434,11 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeUndefined<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual void SerializeUndefined<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
             writer.WriteStringValue($"$Undefined");
         }
 
@@ -478,11 +448,9 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeCustom<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual void SerializeCustom<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
             return;
         }
@@ -493,18 +461,16 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeObject<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual void SerializeObject<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
 
             writer.WriteStartObject();
 
-            this.SerializeTypeName(writer, value, options, property);
-            SerializeHashCode(writer, value, options);
+            this.SerializeTypeName(writer, value, property);
+            SerializeHashCode(writer, value);
 
             var type = value.GetType();
 
@@ -515,7 +481,7 @@ namespace JsonSerializerApp.Serialization
                 foreach (var key in dict.Keys)
                 {
                     var dictProperty = new CustomPropertyInfo(key.ToString());
-                    this.Serialize(writer, dict[key], options, hashCodes, dictProperty);
+                    this.Serialize(writer, dict[key], dictProperty);
                 }
             }
             else
@@ -523,7 +489,7 @@ namespace JsonSerializerApp.Serialization
                 foreach (var prop in type.GetProperties().Where(t => t.DeclaringType.FullName != "System.Linq.Dynamic.Core.DynamicClass"))
                 {
                     var objProperty = new CustomPropertyInfo(prop);
-                    this.Serialize(writer, prop.GetValue(value), options, hashCodes, objProperty);
+                    this.Serialize(writer, prop.GetValue(value), objProperty);
                 }
             }
 
@@ -536,14 +502,12 @@ namespace JsonSerializerApp.Serialization
         /// <typeparam name="TValue">The type of value.</typeparam>
         /// <param name="writer">The serializer writer.</param>
         /// <param name="value">The value to serialize.</param>
-        /// <param name="options">The serializer options.</param>
-        /// <param name="hashCodes">The reference hash codes.</param>
         /// <param name="property">The property metadata.</param>
         [SuppressMessage("Build", "CA1031:Modify 'IsNullOrEmpty' to catch a more specific allowed exception type, or rethrow the exception.", Justification = "Required to implement the specified behavior.")]
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Validation is not required because null arguments are expected or not null values are granted by the converter implementation.")]
-        protected virtual void SerializeArray<TValue>(Utf8JsonWriter writer, TValue value, CustomConverterOptions options, List<int> hashCodes, CustomPropertyInfo property = null)
+        protected virtual void SerializeArray<TValue>(Utf8JsonWriter writer, TValue value, CustomPropertyInfo property = null)
         {
-            this.SerializePropertyName(writer, value, options, property);
+            this.SerializePropertyName(writer, value, property);
             writer.WriteStartArray();
 
             try
@@ -578,7 +542,7 @@ namespace JsonSerializerApp.Serialization
                     }
                 }
 
-                this.SerializeEnumerable(writer, list, options, hashCodes, null);
+                this.SerializeEnumerable(writer, list, null);
             }
             catch
             {
@@ -591,7 +555,7 @@ namespace JsonSerializerApp.Serialization
                     .GetMethod("SerializeEnumerable", BindingFlags.Instance | BindingFlags.NonPublic)
                     .MakeGenericMethod(itemType);
 
-                serializeEnumerableMethod.Invoke(null, new object[] { writer, value, options, hashCodes, property });
+                serializeEnumerableMethod.Invoke(null, new object[] { writer, value, property });
             }
 
             writer.WriteEndArray();

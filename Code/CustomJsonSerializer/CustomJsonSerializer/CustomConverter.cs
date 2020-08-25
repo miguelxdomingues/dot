@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -14,7 +15,7 @@ namespace JsonSerializerApp.Serialization
     /// <typeparam name="T">The type of converter.</typeparam>
     public partial class CustomConverter<T> : JsonConverter<T>
     {
-        #region Public Properties
+        #region Protected Properties
 
         /// <summary>
         /// Gets or sets the custom converter options that defines
@@ -24,7 +25,15 @@ namespace JsonSerializerApp.Serialization
         /// <value>
         /// The options.
         /// </value>
-        public CustomConverterOptions Options { get; set; }
+        protected CustomConverterOptions Options { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of hash codes to detect circular references.
+        /// </summary>
+        /// <value>
+        /// The list of hash codes.
+        /// </value>
+        protected List<int> HashCodes { get; set; }
 
         #endregion
 
@@ -62,8 +71,11 @@ namespace JsonSerializerApp.Serialization
             // Update JSON serializer options (if any has changed)
             this.Options.JsonSerializerOptions = options;
 
+            // Initialize the list of hash codes to detect circular references
+            this.HashCodes = new List<int>();
+
             // Use custom serialize with custom options
-            this.Serialize(writer, value, this.Options);
+            this.Serialize(writer, value);
         }
 
         #endregion
